@@ -69,6 +69,32 @@ public class VacationDaysService {
         }
     }
 
+    public BigDecimal calculateTotalLeftVacationDaysUpTo(Account account, DateMidnight lastMilestone) {
+        VacationDaysLeft vacationDaysLeft = getVacationDaysLeftUpTo(account, lastMilestone);
+
+        if (DateUtil.isBeforeApril(lastMilestone)) {
+            return vacationDaysLeft.getVacationDays().add(vacationDaysLeft.getRemainingVacationDays());
+        } else {
+            return vacationDaysLeft.getVacationDays().add(vacationDaysLeft.getRemainingVacationDaysNotExpiring());
+        }
+    }
+
+    public VacationDaysLeft getVacationDaysLeftUpTo(Account account, DateMidnight lastMilestone) {
+        BigDecimal vacationDays = account.getVacationDays();
+        BigDecimal remainingVacationDays = account.getRemainingVacationDays();
+        BigDecimal remainingVacationDaysNotExpiring = account.getRemainingVacationDaysNotExpiring();
+
+        BigDecimal daysBeforeApril = getUsedDaysBeforeAprilUpTo(account, lastMilestone);
+        BigDecimal daysAfterApril = getUsedDaysAfterAprilUpTo(account, lastMilestone);
+
+        return VacationDaysLeft.builder()
+            .withAnnualVacation(vacationDays)
+            .withRemainingVacation(remainingVacationDays)
+            .notExpiring(remainingVacationDaysNotExpiring)
+            .forUsedDaysBeforeApril(daysBeforeApril)
+            .forUsedDaysAfterApril(daysAfterApril)
+            .get();
+    }
 
     public VacationDaysLeft getVacationDaysLeft(Account account) {
 
@@ -88,6 +114,22 @@ public class VacationDaysService {
             .get();
     }
 
+    BigDecimal getUsedDaysBeforeAprilUpTo(Account account, DateMidnight lastMilestone) {
+        DateMidnight firstOfJanuary = DateUtil.getFirstDayOfMonth(lastMilestone.getYear(), DateTimeConstants.JANUARY);
+        DateMidnight lastOfMarch = DateUtil.getLastDayOfMonth(lastMilestone.getYear(), DateTimeConstants.MARCH);
+        if (lastMilestone.compareTo(lastOfMarch) > 0) {
+            // Part of our timespan is after April.
+            return getUsedDaysBetweenTwoMilestones(account.getPerson(), firstOfJanuary, lastOfMarch);
+        } else {
+            // Everything before April.
+            return getUsedDaysBetweenTwoMilestones(account.getPerson(), firstOfJanuary, lastMilestone);
+        }
+    }
+
+    BigDecimal getUsedDaysAfterAprilUpTo(Account account, DateMidnight lastMilestone) {
+        DateMidnight firstOfApril = DateUtil.getFirstDayOfMonth(lastMilestone.getYear(), DateTimeConstants.APRIL);
+        return getUsedDaysBetweenTwoMilestones(account.getPerson(), firstOfApril, lastMilestone);
+    }
 
     BigDecimal getUsedDaysBeforeApril(Account account) {
 

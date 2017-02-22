@@ -230,6 +230,97 @@ public class VacationDaysServiceTest {
         Assert.assertEquals(BigDecimal.ZERO, days);
     }
 
+    @Test
+    public void testGetVacationDaysBeforeAprilUpTo() {
+        Person person = TestDataCreator.createPerson("horscht");
+
+        Account account = new Account();
+        account.setPerson(person);
+
+        DateMidnight lastMilestone = new DateMidnight(2012, DateTimeConstants.JUNE, 30);
+        
+        // 3 days, all before April
+        Application a1 = new Application();
+        a1.setStartDate(new DateMidnight(2012, DateTimeConstants.MARCH, 5));
+        a1.setEndDate(new DateMidnight(2012, DateTimeConstants.MARCH, 7));
+        a1.setDayLength(DayLength.FULL);
+        a1.setPerson(person);
+        a1.setStatus(ApplicationStatus.ALLOWED);
+        a1.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        // 7 days, 2 after April
+        Application a2 = new Application();
+        a2.setStartDate(new DateMidnight(2012, DateTimeConstants.MARCH, 26));
+        a2.setEndDate(new DateMidnight(2012, DateTimeConstants.APRIL, 3));
+        a2.setDayLength(DayLength.FULL);
+        a2.setPerson(person);
+        a2.setStatus(ApplicationStatus.ALLOWED);
+        a2.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        // 5 days, all after April
+        Application a3 = new Application();
+        a3.setStartDate(new DateMidnight(2012, DateTimeConstants.SEPTEMBER, 3));
+        a3.setEndDate(new DateMidnight(2012, DateTimeConstants.SEPTEMBER, 7));
+        a3.setDayLength(DayLength.FULL);
+        a3.setPerson(person);
+        a3.setStatus(ApplicationStatus.ALLOWED);
+        a3.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        Mockito.when(applicationService.getApplicationsForACertainPeriodAndPerson(Mockito.any(DateMidnight.class),
+                    Mockito.any(DateMidnight.class), Mockito.any(Person.class)))
+            .thenReturn(Arrays.asList(a1, a2, a3));
+
+        BigDecimal days = vacationDaysService.getUsedDaysBeforeAprilUpTo(account, lastMilestone);
+
+        Assert.assertNotNull(days);
+        Assert.assertEquals(new BigDecimal("8.0"), days);
+    }
+
+    @Test
+    public void testGetVacationDaysAfterAprilUpTo() {
+        Person person = TestDataCreator.createPerson("horscht");
+
+        Account account = new Account();
+        account.setPerson(person);
+
+        DateMidnight lastMilestone = new DateMidnight(2012, DateTimeConstants.SEPTEMBER, 30);
+        
+        // 3 days, all before April
+        Application a1 = new Application();
+        a1.setStartDate(new DateMidnight(2012, DateTimeConstants.MARCH, 5));
+        a1.setEndDate(new DateMidnight(2012, DateTimeConstants.MARCH, 7));
+        a1.setDayLength(DayLength.FULL);
+        a1.setPerson(person);
+        a1.setStatus(ApplicationStatus.ALLOWED);
+        a1.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        // 7 days, 2 after April
+        Application a2 = new Application();
+        a2.setStartDate(new DateMidnight(2012, DateTimeConstants.MARCH, 26));
+        a2.setEndDate(new DateMidnight(2012, DateTimeConstants.APRIL, 3));
+        a2.setDayLength(DayLength.FULL);
+        a2.setPerson(person);
+        a2.setStatus(ApplicationStatus.ALLOWED);
+        a2.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        // 5 days, all after April
+        Application a3 = new Application();
+        a3.setStartDate(new DateMidnight(2012, DateTimeConstants.SEPTEMBER, 3));
+        a3.setEndDate(new DateMidnight(2012, DateTimeConstants.SEPTEMBER, 7));
+        a3.setDayLength(DayLength.FULL);
+        a3.setPerson(person);
+        a3.setStatus(ApplicationStatus.ALLOWED);
+        a3.setVacationType(getVacationType(VacationCategory.HOLIDAY));
+
+        Mockito.when(applicationService.getApplicationsForACertainPeriodAndPerson(Mockito.any(DateMidnight.class),
+                    Mockito.any(DateMidnight.class), Mockito.any(Person.class)))
+            .thenReturn(Arrays.asList(a1, a2, a3));
+
+        BigDecimal days = vacationDaysService.getUsedDaysAfterAprilUpTo(account, lastMilestone);
+
+        Assert.assertNotNull(days);
+        Assert.assertEquals(new BigDecimal("7.0"), days);
+    }
 
     @Test
     public void testGetVacationDaysLeft() {
@@ -256,7 +347,6 @@ public class VacationDaysServiceTest {
         Assert.assertEquals("Wrong number of remaining vacation days that do not expire", BigDecimal.ZERO,
             vacationDaysLeft.getRemainingVacationDaysNotExpiring());
     }
-
 
     @Test
     public void testGetTotalVacationDaysForPastYear() {
@@ -305,7 +395,6 @@ public class VacationDaysServiceTest {
         Assert.assertEquals("Wrong number of total vacation days", new BigDecimal("32"), leftDays);
     }
 
-
     @Test
     public void testGetTotalVacationDaysForThisYearAfterApril() {
 
@@ -329,6 +418,41 @@ public class VacationDaysServiceTest {
         Assert.assertEquals("Wrong number of total vacation days", new BigDecimal("30"), leftDays);
     }
 
+    @Test
+    public void testGetTotalVacationDaysAtEndOfMarch() {
+        initCustomBetweenService("10", "0");
+
+        Account account = new Account();
+        account.setValidFrom(new DateMidnight(2015, 1, 1));
+        account.setAnnualVacationDays(new BigDecimal("30"));
+        account.setVacationDays(new BigDecimal("30"));
+        account.setRemainingVacationDays(new BigDecimal("3"));
+        account.setRemainingVacationDaysNotExpiring(new BigDecimal("1"));
+
+        BigDecimal leftDays = vacationDaysService.calculateTotalLeftVacationDaysUpTo(account, new DateMidnight(2015, 3, 31));
+
+        Assert.assertNotNull("Should not be null", leftDays);
+        Assert.assertEquals("Wrong number of total vacation days", new BigDecimal("23"), leftDays);
+    }
+
+    private void initCustomBetweenService(final String daysBeforeApril, final String daysAfterApril) {
+
+        vacationDaysService = new VacationDaysService(Mockito.mock(WorkDaysService.class), nowService,
+                applicationService) {
+
+            @Override
+            protected BigDecimal getUsedDaysBeforeAprilUpTo(Account account, DateMidnight lastMilestone) {
+
+                return new BigDecimal(daysBeforeApril);
+            }
+
+            @Override
+            protected BigDecimal getUsedDaysAfterAprilUpTo(Account account, DateMidnight lastMilestone) {
+
+                return new BigDecimal(daysAfterApril);
+            }
+        };
+    }
 
     private void initCustomService(final String daysBeforeApril, final String daysAfterApril) {
 
@@ -340,7 +464,6 @@ public class VacationDaysServiceTest {
 
                 return new BigDecimal(daysBeforeApril);
             }
-
 
             @Override
             protected BigDecimal getUsedDaysAfterApril(Account account) {

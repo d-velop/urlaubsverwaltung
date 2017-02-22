@@ -64,7 +64,6 @@ public class ApplicationForLeaveStatisticsController {
         binder.registerCustomEditor(DateMidnight.class, new DateMidnightPropertyEditor());
     }
 
-
     @PreAuthorize(SecurityRules.IS_PRIVILEGED_USER)
     @RequestMapping(value = "/statistics", method = RequestMethod.POST)
     public String applicationForLeaveStatistics(@ModelAttribute("period") FilterPeriod period) {

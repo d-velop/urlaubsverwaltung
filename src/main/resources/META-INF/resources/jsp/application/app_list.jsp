@@ -54,6 +54,13 @@
 
                           <spring:message code="applications.waiting"/>
 
+                          <sec:authorize access="hasAuthority('OFFICE')">
+                          <a href="${URL_PREFIX}/complete_overview" class="fa-action pull-right"
+                          	data-title="<spring:message code="action.complete_overview"/>">
+                          	<i class="fa fa-fw fa-calendar"></i>
+                          </a>
+                          </sec:authorize>
+
                           <a href="${URL_PREFIX}/application/statistics" class="fa-action pull-right"
                               data-title="<spring:message code="action.applications.statistics"/>">
                             <i class="fa fa-fw fa-bar-chart"></i>
@@ -64,7 +71,7 @@
                               data-title="<spring:message code="action.apply.vacation"/>">
                             <i class="fa fa-fw fa-plus-circle"></i>
                           </a>
-                          </sec:authorize>
+                          </sec:authorize>                          
 
                         </legend>
 

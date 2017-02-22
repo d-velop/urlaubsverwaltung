@@ -4,11 +4,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 
 import org.joda.time.DateMidnight;
-
+import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.security.access.AccessDeniedException;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 
 import org.springframework.ui.Model;
@@ -34,6 +34,7 @@ import org.synyx.urlaubsverwaltung.core.sicknote.SickNote;
 import org.synyx.urlaubsverwaltung.core.sicknote.SickNoteService;
 import org.synyx.urlaubsverwaltung.core.util.DateUtil;
 import org.synyx.urlaubsverwaltung.core.workingtime.WorkDaysService;
+import org.synyx.urlaubsverwaltung.security.SecurityRules;
 import org.synyx.urlaubsverwaltung.security.SessionService;
 import org.synyx.urlaubsverwaltung.web.ControllerConstants;
 import org.synyx.urlaubsverwaltung.web.application.ApplicationForLeave;
@@ -45,6 +46,7 @@ import org.synyx.urlaubsverwaltung.web.statistics.UsedDaysOverview;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 /**
@@ -83,6 +85,26 @@ public class OverviewController {
 
     @Autowired
     private SettingsService settingsService;
+    
+    @Autowired
+    private PersonSummaryBuilder personSummaryBuilder;
+
+    @PreAuthorize(SecurityRules.IS_OFFICE)
+    @RequestMapping(value = "/complete_overview", method = RequestMethod.GET)
+    public String showCompleteOverview(@RequestParam(value = ControllerConstants.YEAR_ATTRIBUTE, required = false) Integer year, @RequestParam(value = ControllerConstants.MONTH_ATTRIBUTE, required = false) Integer month, Model model) {
+    	Integer yearToShow = year == null ? DateMidnight.now().getYear() : year;
+    	Integer monthToShow = month == null ? DateMidnight.now().getMonthOfYear() : month;
+    	DateMidnight upTo = DateUtil.getLastDayOfMonth(yearToShow, monthToShow);
+    			
+        List<PersonSummary> personSummaries = personService.getActivePersons().stream().map(person ->
+        	personSummaryBuilder.build(person, upTo)).collect(Collectors.toList());
+        
+        model.addAttribute("year", yearToShow);
+        model.addAttribute("month", monthToShow);
+        model.addAttribute("person_summaries", personSummaries);
+        
+        return "complete_overview";
+    }
 
     @RequestMapping(value = "/overview", method = RequestMethod.GET)
     public String showOverview(
